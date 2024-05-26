@@ -7,36 +7,38 @@ const forms = {
     [MetaTypes.DEFAULT]: {
         name: "default",
         items: [
-            { name: "name", label: "Имя" },
-            { name: "lastname", label: "Фамилия" },
+            { name: "name", label: "Имя", required: true },
+            { name: "lastname", label: "Фамилия", required: true },
         ],
     },
     [MetaTypes.CUSTOM]: {
         name: "custom",
         items: [
-            { name: "custom-name", label: "Кастомнае Имя" },
-            { name: "custom-lastname", label: "Кастомная Фамилия" },
+            { name: "custom-name", label: "Кастомнае Имя", required: true },
+            { name: "custom-lastname", label: "Кастомная Фамилия", required: true },
         ],
     },
 };
-const UploadFile = () => {
+const UploadFile = (props) => {
     const [formType, setFormType] = createSignal(MetaTypes.DEFAULT);
-    const [file, setFile] = createSignal(null);
-    const handleFileChange = (event) => {
-        setFile(event.target.files[0]);
-    };
-    const uploadData = async () => {
+    const uploadData = async (formData) => {
         try {
-            const formData = new FormData();
-            formData.append("file", file());
-            const formValues = {};
-            forms[formType()].items.forEach((item) => {
-                formValues[item.name] = Object.getElementById(item.name).value;
+            const jsonData={};
+            let file;
+            [...formData.entries()].forEach(([key,value] )=>{
+                if (key==="file") {
+                    file=value;
+                    return;
+                }
+                jsonData[key]=value;
             });
-            formData.append("data", JSON.stringify(formValues));
-            await fetch("/upload", {
+            const body=new FormData();
+            body.append("json_data",JSON.stringify(jsonData));
+            body.append("file",file);
+            await fetch("http://localhost:6060/upload", {
+                headers: {"Access-Control-Allow-Origin": "http://localhost:3000"},
                 method: 'POST',
-                body: formData
+                body
             });
         } catch (error) {
             console.error('Ошибка при загрузке файла:', error);
@@ -44,7 +46,7 @@ const UploadFile = () => {
     };
     return (
         <Modal classList={{ [styles.container]: true }}>
-            <div>
+            <div class={styles.select}>
                 <select
                     onChange={(e) => {
                         setFormType(e.target.value);
@@ -55,21 +57,24 @@ const UploadFile = () => {
                     </For>
                 </select>
             </div>
-            <form onSubmit={(e) => {
-                e.preventDefault();
-                uploadData();
-            }}>
+            <div class={styles.form}>
 
                 <Form
                     name={forms[formType()].name}
                     items={forms[formType()].items}
                     classList={{[styles.form]: true}}
+                    onSubmit={(e) =>{
+                        uploadData(new FormData(e.target)).then(()=>props.onModalClose?.());
+
+                        //console.log(e);
+                        console.log(new FormData(e.target));
+                    }}
                 />
                 <div class="modal-footer">
-                    <input type="file" onChange={handleFileChange}/>
-                    <button class="btn btn_2 btn-primary" type="submit">Upload</button>
+                    <input name={"file"} form={"form_name"} type="file"/>
+                    <button class="btn btn_2 btn-primary" type="submit" form={"form_name"}>Upload</button>
                 </div>
-            </form>
+            </div>
         </Modal>
     );
 };

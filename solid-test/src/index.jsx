@@ -7,4 +7,4 @@ import UploadFile from "./UploadFile";
 
 const root = document.getElementById("root");
 
-render(() => <UploadFile />, root);
+render(() => <UploadFile onModalClose={()=>console.log("closed")}/>, root);
